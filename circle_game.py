@@ -1,4 +1,3 @@
-#Test comment for GitHub desktop
 # Importing arcade module
 import arcade
 import arcade.gui as gui
@@ -9,16 +8,22 @@ import requests
 BIN_ID = '6373b45a0e6a79321e4a8ca7'
 url = 'https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest'
 headers = {
-  'X-Master-Key': '<$2b$10$Udpb3TQGuNBmgDV5RhP6.OKFval0Tr1619w4FkzTaaUtWAk6Kcc5S>'
+    'Content-Type': 'application/json',
+    'X-Master-Key': '<$2b$10$Udpb3TQGuNBmgDV5RhP6.OKFval0Tr1619w4FkzTaaUtWAk6Kcc5S>'
 }
+try:
+   req = requests.get(url, json=None, headers=headers).json()['record']
+   with open("high_scores.json", 'w') as f:
+        json.dump(req, f)
+except requests.exceptions.ConnectionError:
+    req = {"1st": ["No Connection"]}
 
-req = requests.get(url, json=None, headers=headers)
-print(req.json())
+
 # Size of the rectangle
 RECT_WIDTH = 50
 RECT_HEIGHT = 50
 PLAYER_MOVEMENT_SPEED = 5
-
+IS_CONNECTED = not(req["1st"][0] == "No Connection")
 min_circle_size = 5
 colors = [arcade.color.GREEN,
           arcade.color.RED,
@@ -27,6 +32,15 @@ colors = [arcade.color.GREEN,
           arcade.color.YELLOW,
     ]
 # Creating MainGame class
+def update_server(data):
+    url = 'https://api.jsonbin.io/v3/b/'+BIN_ID
+    headers = {
+    'Content-Type': 'application/json',
+    'X-Master-Key': '$2b$10$Udpb3TQGuNBmgDV5RhP6.OKFval0Tr1619w4FkzTaaUtWAk6Kcc5S'
+    }
+    req = requests.put(url, json=data, headers=headers)
+    print(req.text)
+
 def get_scores(file_name):
     with open(file_name, 'r') as f:
         return json.load(f)
@@ -90,6 +104,7 @@ class MainGame(arcade.Window):
         self.high_scores = get_scores('high_scores.json')
         self.high_scores_list = []
         
+
         # the velocity of the player
         self.vel_x = 0
         self.TIMER = 0
@@ -204,19 +219,22 @@ class MainGame(arcade.Window):
     def update_scores_label(self):
         self.scores_label = ''
         for key in self.high_scores:
-            if self.high_scores[key][1] == 0:
+            if not IS_CONNECTED:
+                self.scores_label = "No Internet Connection"
+            elif self.high_scores[key][1] == 0:
                 self.scores_label += key + ",  " + "No score yet\n\n" 
             else:
                 self.scores_label += key + ",  " + self.high_scores[key][0] + ": " + str(self.high_scores[key][1]) + "\n\n"
                 
     
     def update_high_scores(self):
-        self.update_scores_list()
-        for key in self.high_scores:
-            self.high_scores[key][1] = self.high_scores_list[int(key[0:1])-1][1]
-            self.high_scores[key][0] = self.high_scores_list[int(key[0:1])-1][0]
-            self.update_scores_label()
-            change_score('high_scores.json',key,self.high_scores[key])            
+        if IS_CONNECTED:
+            self.update_scores_list()
+            for key in self.high_scores:
+                self.high_scores[key][1] = self.high_scores_list[int(key[0:1])-1][1]
+                self.high_scores[key][0] = self.high_scores_list[int(key[0:1])-1][0]
+                self.update_scores_label()
+                change_score('high_scores.json',key,self.high_scores[key])            
                 
         self.update_scores_label()
     def draw_scores_label(self):
@@ -287,11 +305,11 @@ class MainGame(arcade.Window):
             self.manager.draw()
         self.draw_scores_label()
     def setup(self):
-    
-        for key in self.high_scores:
-            name = self.high_scores[key][0]
-            score = self.high_scores[key][1]
-            self.high_scores_list.append([name,score,False])
+        if IS_CONNECTED:
+            for key in self.high_scores:
+                name = self.high_scores[key][0]
+                score = self.high_scores[key][1]
+                self.high_scores_list.append([name,score,False])
         
    
       
@@ -399,4 +417,6 @@ class MainGame(arcade.Window):
 game = MainGame()
 game.setup()
 arcade.run()
-
+if IS_CONNECTED:
+    print("works")
+    update_server(get_scores('high_scores.json'))
