@@ -274,7 +274,7 @@ class MainGame(arcade.Window):
                 # Checks if a circle hits player
             if hits(self.player,circle):
                 if circle["radius"] < self.player["radius"]:
-                    self.PLAYER_SIZE += circle["radius"]
+                    self.PLAYER_SIZE += circle["radius"] 
                     self.player["radius"] += math.log(self.PLAYER_SIZE,15)*0.5
                     self.score += self.PLAYER_SIZE
                     self.update_high_scores()
